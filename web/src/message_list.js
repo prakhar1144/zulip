@@ -383,10 +383,17 @@ export class MessageList {
             return;
         }
 
+        const sub = stream_data.get_sub(stream_name);
+
+        // stream was just created in this browser window. Creator is
+        // considered to be subscribed, skip bookend in this case.
+        if (sub.first_message_id === null) {
+            return;
+        }
+
         let deactivated = false;
         let just_unsubscribed = false;
         const subscribed = stream_data.is_subscribed_by_name(stream_name);
-        const sub = stream_data.get_sub(stream_name);
         const invite_only = sub && sub.invite_only;
         const is_web_public = sub && sub.is_web_public;
         const can_toggle_subscription =
