@@ -302,7 +302,10 @@ def internal_prep_group_direct_message_for_old_realm(
     administrators = list(realm.get_human_admin_users())
     with override_language(realm.default_language):
         topic_name = str(realm.ZULIP_UPDATE_ANNOUNCEMENTS_TOPIC_NAME)
-    if realm.zulip_update_announcements_stream is None:
+    if (
+        realm.zulip_update_announcements_stream is None
+        or realm.zulip_update_announcements_stream.deactivated
+    ):
         content = """
 Zulip now supports [configuring]({organization_settings_url}) a channel where Zulip will
 send [updates]({zulip_update_announcements_help_url}) about new Zulip features.
@@ -444,7 +447,10 @@ def send_zulip_update_announcements_to_realm(
             new_zulip_update_announcements_level = latest_zulip_update_announcements_level
         else:
             new_zulip_update_announcements_level = 0
-    elif realm.zulip_update_announcements_stream is None:
+    elif (
+        realm.zulip_update_announcements_stream is None
+        or realm.zulip_update_announcements_stream.deactivated
+    ):
         # Realm misses the update messages in two cases:
         # Case 1: New realm created, and later stream manually set to None.
         # No group direct message is sent. Introductory message in the topic is sent.
