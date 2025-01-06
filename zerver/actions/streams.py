@@ -4,7 +4,7 @@ from typing import Any, TypeAlias
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, QuerySet
+from django.db.models import Case, F, Q, QuerySet, Value, When
 from django.utils.timezone import now as timezone_now
 from django.utils.translation import gettext as _
 from django.utils.translation import override as override_language
@@ -92,6 +92,25 @@ def do_deactivate_stream(stream: Stream, *, acting_user: UserProfile | None) -> 
     stream.save(update_fields=["deactivated"])
 
     ChannelEmailAddress.objects.filter(realm=stream.realm, channel=stream).update(deactivated=True)
+
+    Realm.objects.filter(id=stream.realm_id).update(
+        moderation_request_channel=Case(
+            When(moderation_request_channel=stream, then=Value(None)),
+            default=F("moderation_request_channel"),
+        ),
+        new_stream_announcements_stream=Case(
+            When(new_stream_announcements_stream=stream, then=Value(None)),
+            default=F("new_stream_announcements_stream"),
+        ),
+        signup_announcements_stream=Case(
+            When(signup_announcements_stream=stream, then=Value(None)),
+            default=F("signup_announcements_stream"),
+        ),
+        zulip_update_announcements_stream=Case(
+            When(zulip_update_announcements_stream=stream, then=Value(None)),
+            default=F("zulip_update_announcements_stream"),
+        ),
+    )
 
     assert stream.recipient_id is not None
     if was_web_public:
