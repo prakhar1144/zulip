@@ -41,7 +41,8 @@ type Part =
     | {
           type: "channel_topic";
           channel: string;
-          topic: string;
+          topic_display_name: string;
+          is_empty_string_topic: boolean;
       }
     | {
           type: "is_operator";
@@ -56,6 +57,7 @@ type Part =
           type: "prefix_for_operator";
           prefix_for_operator: string;
           operand: string;
+          is_empty_string_topic?: boolean;
       }
     | {
           type: "user_pill";
@@ -716,7 +718,7 @@ export class Filter {
     }
 
     // Convert a list of terms to a human-readable description.
-    static parts_for_describe(terms: NarrowTerm[]): Part[] {
+    static parts_for_describe(terms: NarrowTerm[], is_operator_suggestion: boolean): Part[] {
         const parts: Part[] = [];
 
         if (terms.length === 0) {
@@ -736,7 +738,8 @@ export class Filter {
                     parts.push({
                         type: "channel_topic",
                         channel,
-                        topic,
+                        topic_display_name: util.get_final_topic_display_name(topic),
+                        is_empty_string_topic: topic === "",
                     });
                     terms = terms.slice(2);
                 }
@@ -812,6 +815,14 @@ export class Filter {
                     // Assume the operand is a partially formed name and return
                     // the operator as the channel name in the next block.
                 }
+                if (canonicalized_operator === "topic" && !is_operator_suggestion) {
+                    return {
+                        type: "prefix_for_operator",
+                        prefix_for_operator,
+                        operand: util.get_final_topic_display_name(operand),
+                        is_empty_string_topic: operand === "",
+                    };
+                }
                 return {
                     type: "prefix_for_operator",
                     prefix_for_operator,
@@ -826,9 +837,12 @@ export class Filter {
         return [...parts, ...more_parts];
     }
 
-    static search_description_as_html(terms: NarrowTerm[]): string {
+    static search_description_as_html(
+        terms: NarrowTerm[],
+        is_operator_suggestion: boolean,
+    ): string {
         return render_search_description({
-            parts: Filter.parts_for_describe(terms),
+            parts: Filter.parts_for_describe(terms, is_operator_suggestion),
         });
     }
 
