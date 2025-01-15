@@ -38,8 +38,8 @@ set_realm({realm_empty_topic_display_name: REALM_EMPTY_TOPIC_DISPLAY_NAME});
 
 // Helper test function
 function test_reply_label(expected_label) {
-    const label = $("#left_bar_compose_reply_button_big").text();
-    const prepend_text_length = "translated: Message ".length;
+    const label = $("#left_bar_compose_reply_button_big").html();
+    const prepend_text_length = "translated HTML: Message ".length;
     assert.equal(
         label.slice(prepend_text_length),
         expected_label,

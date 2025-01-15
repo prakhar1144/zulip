@@ -171,24 +171,21 @@ export function set_standard_text_for_reply_button(): void {
 export function update_reply_recipient_label(message?: ComposeClosedMessage): void {
     const recipient_label = get_recipient_label(message);
     if (recipient_label !== undefined) {
-        if (!recipient_label.has_empty_string_topic) {
-            const recipient_label_text = recipient_label.label_text;
-            set_reply_button_label(
-                $t({defaultMessage: "Message {recipient_label_text}"}, {recipient_label_text}),
-            );
-        } else {
-            const topic_display_name = util.get_final_topic_display_name("");
-            const recipient_label_html = $t_html(
-                {
-                    defaultMessage: "Message <z-recipient-label></z-recipient-label>",
+        const recipient_label_html = $t_html(
+            {
+                defaultMessage: "Message <z-recipient-label></z-recipient-label>",
+            },
+            {
+                "z-recipient-label"() {
+                    if (recipient_label.has_empty_string_topic) {
+                        const topic_display_name = util.get_final_topic_display_name("");
+                        return `#${recipient_label.stream_name} > <span class="empty-topic-display">${topic_display_name}</span>`;
+                    }
+                    return recipient_label.label_text;
                 },
-                {
-                    "z-recipient-label": () =>
-                        `#${recipient_label.stream_name} > <span class="empty-topic-display">${topic_display_name}</span>`,
-                },
-            );
-            $("#left_bar_compose_reply_button_big").html(recipient_label_html);
-        }
+            },
+        );
+        $("#left_bar_compose_reply_button_big").html(recipient_label_html);
     } else {
         set_standard_text_for_reply_button();
     }
