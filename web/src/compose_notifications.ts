@@ -10,7 +10,7 @@ import render_unmute_topic_banner from "../templates/compose_banner/unmute_topic
 import * as blueslip from "./blueslip.ts";
 import * as compose_banner from "./compose_banner.ts";
 import * as hash_util from "./hash_util.ts";
-import {$t} from "./i18n.ts";
+import {$t, $t_html} from "./i18n.ts";
 import * as message_lists from "./message_lists.ts";
 import type {Message} from "./message_store.ts";
 import * as narrow_state from "./narrow_state.ts";
@@ -19,6 +19,7 @@ import * as people from "./people.ts";
 import * as stream_data from "./stream_data.ts";
 import {user_settings} from "./user_settings.ts";
 import * as user_topics from "./user_topics.ts";
+import * as util from "./util.ts";
 
 export function notify_unmute(muted_narrow: string, stream_id: number, topic_name: string): void {
     const $unmute_notification = $(
@@ -43,7 +44,7 @@ export function notify_above_composebox(
     classname: string,
     above_composebox_narrow_url: string | null,
     link_msg_id: number,
-    link_text: string,
+    link_content: string,
 ): void {
     const $notification = $(
         render_message_sent_banner({
@@ -51,7 +52,7 @@ export function notify_above_composebox(
             classname,
             above_composebox_narrow_url,
             link_msg_id,
-            link_text,
+            link_content,
         }),
     );
     // We pass in include_unmute_banner as false because we don't want to
@@ -89,6 +90,10 @@ export function notify_automatic_new_visibility_policy(
 function get_message_header(message: Message): string {
     if (message.type === "stream") {
         const stream_name = stream_data.get_stream_name_from_id(message.stream_id);
+        if (message.topic === "") {
+            const topic_display_name = util.get_final_topic_display_name(message.topic);
+            return `#${stream_name} > <span class="empty-topic-display">${topic_display_name}</span>`;
+        }
         return `#${stream_name} > ${message.topic}`;
     }
     if (message.display_recipient.length > 2) {
@@ -218,14 +223,14 @@ export function notify_local_mixes(
         if (!jump_to_sent_message_conversation && !show_narrow_to_recipient_banner) {
             if (need_user_to_scroll) {
                 const banner_text = $t({defaultMessage: "Sent!"});
-                const link_text = $t({defaultMessage: "Scroll down to view your message."});
+                const link_content = $t({defaultMessage: "Scroll down to view your message."});
                 notify_above_composebox(
                     banner_text,
                     compose_banner.CLASSNAMES.sent_scroll_to_view,
                     // Don't display a URL on hover for the "Scroll to bottom" link.
                     null,
                     link_msg_id,
-                    link_text,
+                    link_content,
                 );
                 compose_banner.set_scroll_to_message_banner_message_id(link_msg_id);
             }
@@ -239,16 +244,16 @@ export function notify_local_mixes(
             const banner_text = $t({
                 defaultMessage: "Sent! Your message is outside your current view.",
             });
-            const link_text = $t(
-                {defaultMessage: "Go to {message_recipient}"},
-                {message_recipient: get_message_header(message)},
+            const link_content = $t_html(
+                {defaultMessage: "Go to <z-message-recipient></z-message-recipient>"},
+                {"z-message-recipient": () => get_message_header(message)},
             );
             notify_above_composebox(
                 banner_text,
                 compose_banner.CLASSNAMES.narrow_to_recipient,
                 get_above_composebox_narrow_url(message),
                 link_msg_id,
-                link_text,
+                link_content,
             );
             continue;
         }
@@ -291,16 +296,16 @@ export function notify_messages_outside_current_search(messages: Message[]): voi
             continue;
         }
         const above_composebox_narrow_url = get_above_composebox_narrow_url(message);
-        const link_text = $t(
-            {defaultMessage: "Narrow to {message_recipient}"},
-            {message_recipient: get_message_header(message)},
+        const link_content = $t_html(
+            {defaultMessage: "Narrow to <z-message-recipient></z-message-recipient>"},
+            {"z-message-recipient": () => get_message_header(message)},
         );
         notify_above_composebox(
             $t({defaultMessage: "Sent! Your message is outside your current view."}),
             compose_banner.CLASSNAMES.narrow_to_recipient,
             above_composebox_narrow_url,
             message.id,
-            link_text,
+            link_content,
         );
     }
 }
