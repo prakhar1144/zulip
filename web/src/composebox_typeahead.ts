@@ -1432,6 +1432,7 @@ export function initialize({
         source(): string[] {
             return topics_seen_for(compose_state.stream_id());
         },
+        helpOnEmptyStrings: !realm.realm_mandatory_topics,
         items: max_num_items,
         highlighter_html(item: string): string {
             return typeahead_helper.render_typeahead_item({primary: item});
