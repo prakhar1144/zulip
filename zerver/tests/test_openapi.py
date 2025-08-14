@@ -30,6 +30,7 @@ from zerver.openapi.openapi import (
     validate_schema,
 )
 from zerver.tornado.views import get_events, get_events_backend
+from zilencer.auth import remote_server_dispatch
 
 TEST_ENDPOINT = "/messages/{message_id}"
 TEST_METHOD = "patch"
@@ -530,8 +531,8 @@ so maybe we shouldn't include it in pending_endpoints.
         with the arguments declared in our API documentation
         for every API endpoint in Zulip.
 
-        First, we import the fancy-Django version of zproject/urls.py
-        by doing this, each typed_endpoint wrapper around each
+        First, we import the fancy-Django version of zproject/urls.py and
+        zilencer/urls.py. By doing this, each typed_endpoint wrapper around each
         imported view function gets called to generate the wrapped
         view function and thus filling the global arguments_map variable.
         Basically, we're exploiting code execution during import.
@@ -546,15 +547,21 @@ so maybe we shouldn't include it in pending_endpoints.
         in code.
         """
 
+        from zilencer import urls as zilencer_urlconf
         from zproject import urls as urlconf
 
         # We loop through all the API patterns, looking in particular
-        # for those using the rest_dispatch decorator; we then parse
-        # its mapping of (HTTP_METHOD -> FUNCTION).
-        for p in urlconf.v1_api_and_json_patterns + urlconf.v1_api_mobile_patterns:
+        # for those using the rest_dispatch or remote_server_dispatch decorator;
+        # we then parse its mapping of (HTTP_METHOD -> FUNCTION).
+        for p in (
+            urlconf.v1_api_and_json_patterns
+            + urlconf.v1_api_mobile_patterns
+            + zilencer_urlconf.documented_push_bouncer_patterns
+        ):
             methods_endpoints: dict[str, Any] = {}
-            if p.callback is not rest_dispatch:
-                # Endpoints not using rest_dispatch don't have extra data.
+            if p.callback not in [rest_dispatch, remote_server_dispatch]:
+                # Endpoints not using rest_dispatch or remote_server_dispatch
+                # don't have extra data.
                 if str(p.pattern) in self.documented_post_only_endpoints:
                     methods_endpoints = dict(POST=p.callback)
                 else:
