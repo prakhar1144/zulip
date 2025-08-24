@@ -84,9 +84,10 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
                 f"FCM: Sent message with ID: 0 to (push_account_id={registered_device_android.push_account_id}, device={registered_device_android.token})",
                 zilencer_logger.output[0],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[3],
             )
 
@@ -184,9 +185,10 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
                 f"Deleting PushDevice rows with the following device IDs based on response from bouncer: [{registered_device_apple.device_id}, {registered_device_android.device_id}]",
                 zerver_logger.output[3],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 0 via FCM, 0 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 0 via FCM, 0 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[4],
             )
 
@@ -242,9 +244,10 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
                 f"FCM: Delivery failed for (push_account_id={registered_device_android.push_account_id}, device={registered_device_android.token})",
                 zilencer_logger.output[1],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 0 via FCM, 0 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 0 via FCM, 0 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[2],
             )
 
@@ -277,9 +280,10 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
                 "WARNING:zilencer.lib.push_notifications:Error while pushing to FCM",
                 zilencer_logger.output[0],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 0 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 0 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[2],
             )
 
@@ -390,9 +394,10 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
                 f"FCM: Sent message with ID: 0 to (push_account_id={registered_device_android.push_account_id}, device={registered_device_android.token})",
                 zilencer_logger.output[0],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[3],
             )
 
@@ -601,9 +606,10 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
                 f"FCM: Sent message with ID: 0 to (push_account_id={registered_device_android.push_account_id}, device={registered_device_android.token})",
                 zilencer_logger.output[0],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[7],
             )
 
@@ -723,9 +729,10 @@ class RemovePushNotificationTest(E2EEPushNotificationTestCase):
             user_message.refresh_from_db()
             self.assertFalse(user_message.flags.active_mobile_push_notification)
 
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[2],
             )
 
@@ -766,9 +773,10 @@ class RemovePushNotificationTest(E2EEPushNotificationTestCase):
             user_message.refresh_from_db()
             self.assertFalse(user_message.flags.active_mobile_push_notification)
 
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[2],
             )
 
@@ -904,9 +912,10 @@ class SendTestPushNotificationTest(E2EEPushNotificationTestCase):
                 f"Sending E2EE test push notification for user {hamlet.id}",
                 zerver_logger.output[0],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[-1],
             )
 
@@ -924,9 +933,10 @@ class SendTestPushNotificationTest(E2EEPushNotificationTestCase):
                 f"Sending E2EE test push notification for user {hamlet.id}",
                 zerver_logger.output[0],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 0 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 0 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[-1],
             )
 
@@ -965,9 +975,10 @@ class SendTestPushNotificationTest(E2EEPushNotificationTestCase):
                 f"Sending E2EE test push notification for user {hamlet.id}",
                 zerver_logger.output[0],
             )
-            self.assertEqual(
+            self.assertIn(
                 "INFO:zerver.lib.push_notifications:"
-                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs",
+                f"Sent E2EE mobile push notifications for user {hamlet.id}: 1 via FCM, 1 via APNs. "
+                "Roundtrip since worker decided to send took ",
                 zerver_logger.output[-1],
             )
 

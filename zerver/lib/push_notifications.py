@@ -4,6 +4,7 @@ import asyncio
 import copy
 import logging
 import re
+import time
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from email.headerregistry import Address
@@ -1521,6 +1522,7 @@ def send_push_notifications(
 
     # Send push notification
     try:
+        start_time = time.perf_counter()
         if settings.ZILENCER_ENABLED:
             from zilencer.lib.push_notifications import send_e2ee_push_notifications
 
@@ -1544,6 +1546,7 @@ def send_push_notifications(
                 "delete_device_ids": result["delete_device_ids"],
                 "realm_push_status": result["realm_push_status"],  # type: ignore[typeddict-item] # TODO: Can't use isinstance() with TypedDict type
             }
+        send_push_notifications_latency = time.perf_counter() - start_time
     except (MissingRemoteRealmError, PushNotificationsDisallowedByBouncerError) as e:
         reason = e.reason if isinstance(e, PushNotificationsDisallowedByBouncerError) else e.msg
         logger.warning("Bouncer refused to send E2EE push notification: %s", reason)
@@ -1587,10 +1590,12 @@ def send_push_notifications(
     )
 
     logger.info(
-        "Sent E2EE mobile push notifications for user %s: %s via FCM, %s via APNs",
+        "Sent E2EE mobile push notifications for user %s: %s via FCM, %s via APNs. "
+        "Roundtrip since worker decided to send took %.3f seconds.",
         user_profile.id,
         android_successfully_sent_count,
         apple_successfully_sent_count,
+        send_push_notifications_latency,
     )
 
     realm_push_status_dict = response_data.get("realm_push_status")
