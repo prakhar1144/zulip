@@ -65,7 +65,7 @@ class ZulipUploadBackend:
     def get_avatar_url(self, hash_key: str, medium: bool = False) -> str:
         raise NotImplementedError
 
-    def get_avatar_contents(self, file_path: str) -> tuple[bytes, str]:
+    def get_avatar_contents(self, file_path: str, avatar_source: str) -> tuple[bytes, str]:
         raise NotImplementedError
 
     def get_avatar_path(self, hash_key: str, medium: bool = False) -> str:
