@@ -398,6 +398,23 @@ def include_realm_name_in_missedmessage_emails_subject(user_profile: UserProfile
     )
 
 
+def prepare_synthetic_root_message_id(recipient_type: int, narrow_url: str) -> str:
+    """
+    To help email clients thread messages from the same conversation together,
+    we treat all messages as replies to a synthetic root message. This root
+    message's `Message-ID` header is derived from the conversation's narrow_url,
+    ensuring consistency across all emails in the thread.
+    """
+    if recipient_type == Recipient.STREAM:
+        if "/near/" in narrow_url:
+            narrow_url = narrow_url.rsplit("/near/", 1)[0]
+        elif "/with/" in narrow_url:
+            narrow_url = narrow_url.rsplit("/with/", 1)[0]
+
+    id_left = narrow_url.split("/#narrow/", 1)[1]
+    return f"{id_left}@{settings.EXTERNAL_HOST_WITHOUT_PORT}"
+
+
 def do_send_missedmessage_events_reply_in_zulip(
     user_profile: UserProfile, missed_messages: list[dict[str, Any]], message_count: int
 ) -> None:
@@ -599,6 +616,9 @@ def do_send_missedmessage_events_reply_in_zulip(
 
     user_tz = user_profile.timezone or settings.TIME_ZONE
     local_time = timezone_now().astimezone(zoneinfo.ZoneInfo(canonicalize_timezone(user_tz)))
+    synthetic_root_message_id = prepare_synthetic_root_message_id(
+        message.recipient.type, context["narrow_url"]
+    )
     email_dict = {
         "template_prefix": "zerver/emails/missed_message",
         "to_user_ids": [user_profile.id],
@@ -607,6 +627,8 @@ def do_send_missedmessage_events_reply_in_zulip(
         "reply_to_email": str(Address(display_name=reply_to_name, addr_spec=reply_to_address)),
         "context": context,
         "date": email_format_datetime(local_time),
+        "in_reply_to": synthetic_root_message_id,
+        "references": synthetic_root_message_id,
     }
     queue_event_on_commit("email_senders", email_dict)
 

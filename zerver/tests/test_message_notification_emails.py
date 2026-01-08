@@ -20,21 +20,29 @@ from zerver.actions.message_send import internal_send_private_message
 from zerver.actions.user_groups import add_subgroups_to_user_group, check_add_user_group
 from zerver.actions.user_settings import do_change_user_setting
 from zerver.actions.user_topics import do_set_user_topic_visibility_policy
+from zerver.lib.display_recipient import get_display_recipient
 from zerver.lib.email_notifications import (
     MissedMessageData,
     fix_emojis,
     fix_spoilers_in_html,
     handle_missedmessage_emails,
     include_realm_name_in_missedmessage_emails_subject,
+    prepare_synthetic_root_message_id,
     relative_to_full_url,
 )
 from zerver.lib.emoji import get_emoji_file_name
+from zerver.lib.message_cache import MessageDict
 from zerver.lib.send_email import FromAddress
 from zerver.lib.test_classes import ZulipTestCase
+from zerver.lib.url_encoding import (
+    direct_message_group_narrow_url,
+    message_link_url,
+    personal_narrow_url,
+)
 from zerver.models import Message, UserMessage, UserProfile, UserTopic
 from zerver.models.realm_emoji import get_name_keyed_dict_for_active_realm_emoji
 from zerver.models.realms import get_realm
-from zerver.models.recipients import get_or_create_direct_message_group
+from zerver.models.recipients import Recipient, get_or_create_direct_message_group
 from zerver.models.scheduled_jobs import NotificationTriggers
 from zerver.models.streams import get_stream
 
@@ -1997,3 +2005,88 @@ class TestMessageNotificationEmails(ZulipTestCase):
         expected_email_body_includes = f"You are receiving this because all topic participants were mentioned in #Denmark > {Message.EMPTY_TOPIC_FALLBACK_NAME}."
         self.assertEqual(mail.outbox[0].subject, expected_email_subject)
         self.assertIn(expected_email_body_includes, self.normalize_string(mail.outbox[0].body))
+
+    def test_prepare_synthetic_root_message_id(self) -> None:
+        hamlet = self.example_user("hamlet")
+        aaron = self.example_user("aaron")
+        cordelia = self.example_user("cordelia")
+        othello = self.example_user("othello")
+
+        # Verify different `synthetic_root_message_id` for different 1:1 DM to hamlet.
+        narrow_url = personal_narrow_url(
+            realm=aaron.realm, sender_id=aaron.id, sender_full_name=aaron.full_name
+        )
+        synthetic_root_message_id = prepare_synthetic_root_message_id(
+            Recipient.PERSONAL, narrow_url
+        )
+        self.assertEqual(synthetic_root_message_id, "dm/6-aaron@testserver")
+
+        narrow_url = personal_narrow_url(
+            realm=cordelia.realm, sender_id=cordelia.id, sender_full_name=cordelia.full_name
+        )
+        synthetic_root_message_id = prepare_synthetic_root_message_id(
+            Recipient.PERSONAL, narrow_url
+        )
+        self.assertEqual(synthetic_root_message_id, "dm/8-Cordelia,-Lear's-daughter@testserver")
+
+        def get_direct_message_group_narrow_url(
+            sender: UserProfile, other_users: list[UserProfile]
+        ) -> str:
+            msg_id = self.send_group_direct_message(sender, other_users, "Group DM!")
+            message = Message.objects.get(id=msg_id)
+            display_recipient = get_display_recipient(message.recipient)
+            narrow_url = direct_message_group_narrow_url(
+                user=hamlet,
+                display_recipient=display_recipient,
+            )
+            return narrow_url
+
+        # Verify different `synthetic_root_message_id` for different group-DM to hamlet.
+        narrow_url = get_direct_message_group_narrow_url(aaron, [hamlet, cordelia])
+        synthetic_root_message_id = prepare_synthetic_root_message_id(
+            Recipient.DIRECT_MESSAGE_GROUP, narrow_url
+        )
+        self.assertEqual(synthetic_root_message_id, "dm/6,8-group@testserver")
+
+        narrow_url = get_direct_message_group_narrow_url(aaron, [hamlet, cordelia, othello])
+        synthetic_root_message_id = prepare_synthetic_root_message_id(
+            Recipient.DIRECT_MESSAGE_GROUP, narrow_url
+        )
+        self.assertEqual(synthetic_root_message_id, "dm/6,8,12-group@testserver")
+
+        # Changing the sender in a group DM doesn't alter `synthetic_root_message_id`.
+        narrow_url = get_direct_message_group_narrow_url(othello, [hamlet, cordelia, aaron])
+        synthetic_root_message_id = prepare_synthetic_root_message_id(
+            Recipient.DIRECT_MESSAGE_GROUP, narrow_url
+        )
+        self.assertEqual(synthetic_root_message_id, "dm/6,8,12-group@testserver")
+
+        def get_channel_message_link_url(
+            sender: UserProfile, channel_name: str, topic_name: str, conversation_link: bool
+        ) -> str:
+            msg_id = self.send_stream_message(sender, channel_name, topic_name=topic_name)
+            message = Message.objects.get(id=msg_id)
+            narrow_url = message_link_url(
+                sender.realm, MessageDict.wide_dict(message), conversation_link=conversation_link
+            )
+            return narrow_url
+
+        # Verify different `synthetic_root_message_id` for different topics.
+        narrow_url = get_channel_message_link_url(
+            othello, "Denmark", topic_name="", conversation_link=True
+        )
+        synthetic_root_message_id = prepare_synthetic_root_message_id(Recipient.STREAM, narrow_url)
+        self.assertEqual(synthetic_root_message_id, "channel/10-Denmark/topic/@testserver")
+
+        narrow_url = get_channel_message_link_url(
+            aaron, "Verona", topic_name="hello", conversation_link=False
+        )
+        synthetic_root_message_id = prepare_synthetic_root_message_id(Recipient.STREAM, narrow_url)
+        self.assertEqual(synthetic_root_message_id, "channel/3-Verona/topic/hello@testserver")
+
+        # Same `synthetic_root_message_id` for messages in the same conversation.
+        narrow_url = get_channel_message_link_url(
+            cordelia, "Verona", topic_name="hello", conversation_link=True
+        )
+        synthetic_root_message_id = prepare_synthetic_root_message_id(Recipient.STREAM, narrow_url)
+        self.assertEqual(synthetic_root_message_id, "channel/3-Verona/topic/hello@testserver")
