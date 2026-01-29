@@ -303,6 +303,16 @@ class EventDeviceAdd(BaseEvent):
     device_id: int
 
 
+class EventDeviceUpdate(BaseEvent):
+    type: Literal["device"]
+    op: Literal["update"]
+    device_id: int
+    push_key_id: int | None = None
+    push_token_id: int | None = None
+    pending_push_token_id: int | None = None
+    push_registration_error_code: str | None = None
+
+
 class NavigationViewFields(BaseModel):
     fragment: str
     is_pinned: bool
