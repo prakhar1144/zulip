@@ -4,3 +4,5 @@
   field to response.
 * [`GET /events`](/api/get-events):  A `device` event is sent
   to clients to live-update the `devices` dictionary.
+* [`POST /mobile_push/e2ee/test_notification`](/api/e2ee-test-notify):
+  Replaced `push_account_id` parameter with `device_id`.
