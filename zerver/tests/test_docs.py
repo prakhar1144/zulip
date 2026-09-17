@@ -13,7 +13,7 @@ from django.utils.timezone import now as timezone_now
 
 from corporate.models.customers import Customer
 from corporate.models.plans import CustomerPlan
-from zerver.actions.realm_settings import do_set_realm_property
+from zerver.actions.realm_settings import do_deactivate_realm, do_set_realm_property
 from zerver.context_processors import get_apps_page_url
 from zerver.lib.integrations import BOT_INTEGRATIONS, CATEGORIES, INTEGRATIONS
 from zerver.lib.test_classes import ZulipTestCase
@@ -398,6 +398,22 @@ class DocPageTest(ZulipTestCase):
         self.assert_not_in_success_response(
             ["Zulip Dev", "Some description", 'data-category="research"'], result
         )
+
+    def test_deactivated_organizations_are_not_listed(self) -> None:
+        realm = get_realm("zulip")
+        do_set_realm_property(
+            realm, "want_advertise_in_communities_directory", True, acting_user=None
+        )
+        do_set_realm_property(realm, "description", "Some description", acting_user=None)
+        self._test("/communities/", ["Zulip Dev", "Some description"])
+
+        # A deactivated organization keeps the setting and the description,
+        # so it would otherwise go on being advertised.
+        do_deactivate_realm(
+            realm, acting_user=None, deactivation_reason="owner_request", email_owners=False
+        )
+        result = self.client_get("/communities/")
+        self.assert_not_in_success_response(["Zulip Dev", "Some description"], result)
 
     def test_integration_doc_endpoints(self) -> None:
         images_in_docs = set()

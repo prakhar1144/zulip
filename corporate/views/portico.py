@@ -341,6 +341,11 @@ def communities_view(request: HttpRequest) -> HttpResponse:
             # Filter out demo organizations.
             demo_organization_scheduled_deletion_date__isnull=False,
         )
+        .exclude(
+            # Filter out deactivated organizations, which keep the setting
+            # and the description, but serve only a deactivation notice.
+            deactivated=True,
+        )
         .order_by("name")
     )
     for realm in want_to_be_advertised_realms:
