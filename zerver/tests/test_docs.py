@@ -368,7 +368,17 @@ class DocPageTest(ZulipTestCase):
         self.assert_not_in_success_response(["Zulip Dev"], result)
 
         do_set_realm_property(realm, "description", "Some description", acting_user=None)
-        self._test("/communities/", ["Open communities directory", "Zulip Dev", "Some description"])
+        self._test(
+            "/communities/",
+            [
+                "Open communities directory",
+                "Zulip Dev",
+                "Some description",
+                # Listings link to organizations we do not control, so they
+                # must not pass search engine reputation on to them.
+                'rel="nofollow"',
+            ],
+        )
 
         # No org with research type so research category not displayed.
         result = self.client_get("/communities/")
